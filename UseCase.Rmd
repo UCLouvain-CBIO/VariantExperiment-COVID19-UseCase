@@ -1,8 +1,8 @@
 ---
-title: "Demonstration of using a VariantExperiment file to manage COVID19 data"
+title: "Using a VariantExperiment data object to manage COVID19 data"
 author: "Jerome Ambroise, Laurent Gatto, Julie Hurel, Bertrand Bearzatto, Jean-Luc Gala"
 date: '`r format(Sys.time(), "%B %d, %Y,%H:%M")`'
-output: 
+output:
   html_document:
     smart: FALSE
     code_folding: show
@@ -16,54 +16,72 @@ output:
     toc: yes
     toc_depth: 3
     toc_float: yes
-editor_options: 
+editor_options:
   chunk_output_type: console
 ---
 
-In this document we illustrate the advantages of using the VariantExperiment Bioconductor package for handling SARS-CoV-2 genomic data and associated metadata. For more details, we invite you to read the associated publication ('On the many advantages of using the VariantExperiment Bioconductor package for storing, exchanging and analyzing SARS-CoV-2 genomic data and associated metadata' available on bioRxiv.org).
+In this document we illustrate the advantages of using the
+`r BiocStyle::Biocpkg("VariantExperiment")` Bioconductor
+package for handling SARS-CoV-2 genomic data and associated
+metadata. For more details, we invite you to read the associated
+publication ('On the many advantages of using the VariantExperiment
+Bioconductor package for storing, exchanging and analyzing SARS-CoV-2
+genomic data and associated metadata' available on bioRxiv.org).
 
 
 # Load package
 
-```{r message=FALSE}
+```{r, message = FALSE}
 library(VariantExperiment)
 ```
 
-# Load file
+# Data loading
 
-THe RangedSummarizedExperiment object was created with the VariantExperiment package for handling SARS-COV2 genomic data and associated 'dummy' (in the present study) metadata.
+The `RangedSummarizedExperiment` object was created with the
+VariantExperiment package for handling SARS-COV2 genomic data and
+associated 'dummy' (in the present study) metadata.
 
 ```{r}
-SARSCOV2 <- readRDS( 'SARSCOV2_VariantExperiment.RDS')
+SARSCOV2 <- readRDS('SARS-CoV-2_VariantExperiment.rds')
 ```
 
-# Explore the file
+# Data management
+
+The object contains `r nrow(SARSCOV2)` variants sequenced in
+`r ncol(SARSCOV2)` different samples.
 
 ```{r}
 SARSCOV2
 ```
 
-## Assay data  = Genomic data 
+## `Assay`: genomic data
 
-As shown heren, the assays slots store the Genomic data (including the called genotype and a quality metrics [e.g.: Read Depth DP for the illustration]).
-Of course other quality metrics could be added as a phred score.
+As shown heren, the assays slots store the Genomic data (including the
+called genotype and a quality metrics such as read depth (DP) for the
+illustration).  Of course other quality metrics could be added as a
+phred score.
 
 ```{r}
 assays(SARSCOV2)$genotype
 assays(SARSCOV2)$DP
 ```
 
-## colData  = Metadata associated to each sample
+## `colData`: sample annotations/metadata
 
-As shown here, the colData slots store the metadata associated to each sample (sample, pre-analytic, analytic, bioinformatics)
+As shown here, the `colData` slot stores the annotation/metadata
+associated to each sample (sample, pre-analytic, analytic,
+bioinformatics)
 
 ```{r}
 colData(SARSCOV2)
 ```
 
-## rowData  = feature data 
+## `rowData`: feature annotationnns
 
-Finally, the rowData includes the description of each mutation. This slots could also include an indicator reflecting if this variant is currently considered as a Variant of Concern (VOC) or Variant of high Concern.
+Finally, the `rowData` includes the description of each mutation. This
+slot could also include an indicator reflecting if this variant is
+currently considered as a Variant of Concern (VOC) or Variant of high
+Concern.
 
 ```{r}
 rowData(SARSCOV2)
@@ -72,15 +90,19 @@ rowData(SARSCOV2)
 
 # Subsetting
 
-Here we illustrate how to subset the object. For the demonstration we select only data:
+Here we illustrate how to subset the object. For the demonstration we
+select only data:
+
 - from patient with obesity (Obsesity = yes)
-- mutation with a start position < 5000 
+- mutation with a start position < 5000
 
 ```{r}
-COVID.FILE.Subset <- SARSCOV2[rowData(SARSCOV2)$start<5000,colData(SARSCOV2)$Obesity=='yes']
+COVID.FILE.Subset <- SARSCOV2[rowData(SARSCOV2)$start < 5000, SARSCOV2$Obesity == 'yes']
 ```
 
-As shown here the selection is performed in one operation for both the rowData, colData and assay(s). This property therefore ensures to keep a perfect synchronization of genomic data with metadata.
+As shown here the selection is performed in one operation for both the
+rowData, colData and assay(s). This property therefore ensures to keep
+a perfect synchronization of genomic data with metadata.
 
 
 # Session info
@@ -88,6 +110,3 @@ As shown here the selection is performed in one operation for both the rowData, 
 ```{r}
 sessionInfo()
 ```
-
-
-

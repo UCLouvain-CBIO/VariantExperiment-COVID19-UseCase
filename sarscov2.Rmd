@@ -124,7 +124,7 @@ library(SeqArray)
 ```{r}
 vcf.header <- seqVCF_Header('variant.q20.vcf')
 seqVCF2GDS(vcf.fn = 'variant.q20.vcf',
-           out.fn = 'sarscov.gds',
+           out.fn = 'sarscov2.gds',
            info.import = c('GT','DP'))
 sarscov2_ve <- makeVariantExperimentFromGDS('sarscov2.gds')
 assayNames(sarscov2_ve) <- c('genotype','DP')
@@ -150,7 +150,7 @@ rowRanges(sarscov2_ve) <- SummarizedExperiment::rowRanges(vcffile.fb)
 
 5. Serialisation of the object
 
-```{r, eval = FALSE}
+```{r}
 saveRDS(sarscov2_ve, 'sarscov2_ve.rds')
 ```
 

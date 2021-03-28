@@ -42,16 +42,16 @@ VariantExperiment package for handling SARS-COV2 genomic data and
 associated 'dummy' (in the present study) metadata.
 
 ```{r}
-SARSCOV2 <- readRDS('SARS-CoV-2_VariantExperiment.rds')
+sarscov2_ve <- readRDS('sarscov2_ve.rds')
 ```
 
 # Data management
 
-The object contains `r nrow(SARSCOV2)` variants sequenced in
-`r ncol(SARSCOV2)` different samples.
+The object contains `r nrow(sarscov2_ve)` variants sequenced in
+`r ncol(sarscov2_ve)` different samples.
 
 ```{r}
-SARSCOV2
+sarscov2_ve
 ```
 
 ## `Assay`: genomic data
@@ -62,8 +62,8 @@ illustration).  Of course other quality metrics could be added as a
 phred score.
 
 ```{r}
-assays(SARSCOV2)$genotype
-assays(SARSCOV2)$DP
+assays(sarscov2_ve)$genotype
+assays(sarscov2_ve)$DP
 ```
 
 ## `colData`: sample annotations/metadata
@@ -73,7 +73,7 @@ associated to each sample (sample, pre-analytic, analytic,
 bioinformatics)
 
 ```{r}
-colData(SARSCOV2)
+SummarizedExperiment::colData(sarscov2_ve)
 ```
 
 ## `rowData`: feature annotationnns
@@ -84,26 +84,75 @@ currently considered as a Variant of Concern (VOC) or Variant of high
 Concern.
 
 ```{r}
-rowData(SARSCOV2)
+SummarizedExperiment::rowRanges(sarscov2_ve)
 ```
-
 
 # Subsetting
 
 Here we illustrate how to subset the object. For the demonstration we
 select only data:
 
-- from patient with obesity (Obsesity = yes)
+- from patient with obesity (Obesity = yes)
 - mutation with a start position < 5000
 
 ```{r}
-COVID.FILE.Subset <- SARSCOV2[rowData(SARSCOV2)$start < 5000, SARSCOV2$Obesity == 'yes']
+sel_start <- start(SummarizedExperiment::rowRanges(sarscov2_ve)) < 5000
+sel_obesity <- sarscov2_ve$Obesity == 'yes'
+
+ve2 <- sarscov2_ve[sel_start, sel_obesity]
+ve2
 ```
 
 As shown here the selection is performed in one operation for both the
 rowData, colData and assay(s). This property therefore ensures to keep
 a perfect synchronization of genomic data with metadata.
 
+
+# Creation of the VariantExperiment object
+
+1. Loading required packages
+
+```{r}
+library(SummarizedExperiment)
+library(VariantExperiment)
+library(VariantAnnotation)
+library(SeqArray)
+```
+
+2. Creation of the object based on a vcf file
+
+```{r}
+vcf.header <- seqVCF_Header('variant.q20.vcf')
+seqVCF2GDS(vcf.fn = 'variant.q20.vcf',
+           out.fn = 'sarscov.gds',
+           info.import = c('GT','DP'))
+sarscov2_ve <- makeVariantExperimentFromGDS('sarscov2.gds')
+assayNames(sarscov2_ve) <- c('genotype','DP')
+sarscov2_ve <- sarscov2_ve[, sort.list(colnames(sarscov2_ve))]
+```
+
+3. Sample annotations/metadata (aka `colData`)
+
+```{r}
+col_data <- DataFrame(read.csv('coldata.csv'))
+rownames(col_data) <- col_data$Sample.ID
+stopifnot(identical(colnames(sarscov2_ve), col_data$SRA.ID))
+SummarizedExperiment::colData(sarscov2_ve) <- col_data
+```
+
+4. Feature annotations/medata (aka `rowData`)
+
+
+```{r}
+vcffile.fb <- readVcf('variant.q20.vcf')
+rowRanges(sarscov2_ve) <- SummarizedExperiment::rowRanges(vcffile.fb)
+```
+
+5. Serialisation of the object
+
+```{r, eval = FALSE}
+saveRDS(sarscov2_ve, 'sarscov2_ve.rds')
+```
 
 # Session info
 

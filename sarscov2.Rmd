@@ -61,9 +61,9 @@ called genotype and a quality metrics such as read depth (DP) for the
 illustration).  Of course other quality metrics could be added as a
 phred score.
 
-```{r}
-assays(sarscov2_ve)$genotype
-assays(sarscov2_ve)$DP
+```{r, warning = FALSE}
+assay(sarscov2_ve, "genotype")
+assay(sarscov2_ve, "DP")
 ```
 
 ## `colData`: sample annotations/metadata

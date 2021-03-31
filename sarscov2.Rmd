@@ -66,6 +66,19 @@ assay(sarscov2_ve, "genotype")
 assay(sarscov2_ve, "DP")
 ```
 
+It now becomes easy to produce a graphical overview of the genotypes
+of the read depth of a dataset by plotting the respective assay
+heatmap.
+
+```{r, fig.cap = "Heatmap of the virus genotypes."}
+pheatmap::pheatmap(assay(sarscov2_ve, "genotype"))
+```
+
+```{r, fig.cap = "Heatmap of the sequencing read depth illustrating how some samples have systematic low read depth (blue)."}
+pheatmap::pheatmap(assay(sarscov2_ve, "DP"))
+```
+
+
 ## `colData`: sample annotations/metadata
 
 As shown here, the `colData` slot stores the annotation/metadata
@@ -107,12 +120,53 @@ As shown here the selection is performed in one operation for both the
 rowData, colData and assay(s). This property therefore ensures to keep
 a perfect synchronization of genomic data with metadata.
 
+We can also make use the the VOC/VOI definition in the rowData slot to
+extract and focus on the set of mutated loci of each variant:
+
+```{r}
+voc1 <- sarscov2_ve[rowData(sarscov2_ve)$VOC1, ]
+assay(voc1, "genotype")
+rowRanges(voc1)
+```
+
+```{r}
+voc2 <- sarscov2_ve[rowData(sarscov2_ve)$VOC2, ]
+assay(voc2, "genotype")
+rowRanges(voc2)
+```
+
+Below, we use the sample-level metadata to extract the samples that
+have been annotated as having been infected by certain variants of
+concern:
+
+```{r}
+has_VOC1 <- sarscov2_ve[, sarscov2_ve$has_VOC1]
+assay(has_VOC1, "genotype")
+```
+```{r}
+has_VOC2 <- sarscov2_ve[, sarscov2_ve$has_VOC2]
+assay(has_VOC2, "genotype")
+```
+
+Both subsetting can of course be applied simultaneously to extract the
+variants of concern loci in the patients that have been infected by that particular VOC:
+
+```{r}
+is_voc1 <- sarscov2_ve[rowData(sarscov2_ve)$VOC1, sarscov2_ve$has_VOC1]
+assay(is_voc1, "genotype")
+```
+
+
+```{r}
+is_voc2 <- sarscov2_ve[rowData(sarscov2_ve)$VOC2, sarscov2_ve$has_VOC2]
+assay(is_voc2, "genotype")
+```
 
 # Creation of the VariantExperiment object
 
 1. Loading required packages
 
-```{r}
+```{r, message = FALSE}
 library(SummarizedExperiment)
 library(VariantExperiment)
 library(VariantAnnotation)
@@ -149,7 +203,31 @@ vcffile.fb <- readVcf('variant.q20.vcf')
 rowRanges(sarscov2_ve) <- SummarizedExperiment::rowRanges(vcffile.fb)
 ```
 
-5. Serialisation of the object
+5. Annotation of variants of interest/concern
+
+```{r}
+## VOC initialisation
+rowData(sarscov2_ve)$VOC1 <- rowData(sarscov2_ve)$VOC2 <- FALSE
+## Definition of VOC1, defined by 2 loci, namely
+## "MN908947.3:5224_TAAAAAG/TAAAAG" and
+## "MN908947.3:22487_GAAAAAG/GAAAAG"
+rowData(sarscov2_ve)$VOC1[c(7, 26)] <- TRUE
+## Definition of VOC2, defined by only
+## "MN908947.3:29377_TAAAAAG/TAAAAG"
+rowData(sarscov2_ve)$VOC2[38] <- TRUE
+```
+
+```{r}
+## has_VOC initialisation
+sarscov2_ve$has_VOC1 <- sarscov2_ve$has_VOC2 <- FALSE
+## Annotation of samples infected by VOC1 and VOC2
+sarscov2_ve$has_VOC1[c(2, 6, 9)] <- TRUE
+sarscov2_ve$has_VOC2[c(3, 5, 8)] <- TRUE
+```
+
+
+
+6. Serialisation of the object
 
 ```{r}
 saveRDS(sarscov2_ve, 'sarscov2_ve.rds')

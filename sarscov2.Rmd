@@ -164,7 +164,7 @@ assay(is_voc2, "genotype")
 
 # Creation of the VariantExperiment object
 
-1. Loading required packages
+## Loading required packages
 
 ```{r, message = FALSE}
 library(SummarizedExperiment)
@@ -173,19 +173,19 @@ library(VariantAnnotation)
 library(SeqArray)
 ```
 
-2. Creation of the object based on a vcf file
+## Creation of the object based on a vcf file
 
 ```{r}
-vcf.header <- seqVCF_Header('variant.q20.vcf')
-seqVCF2GDS(vcf.fn = 'variant.q20.vcf',
-           out.fn = 'sarscov2.gds',
+vcf.header <- seqVCF_Header('./variant.q20.vcf')
+seqVCF2GDS(vcf.fn = './variant.q20.vcf',
+           out.fn = './sarscov2.gds',
            info.import = c('GT','DP'))
-sarscov2_ve <- makeVariantExperimentFromGDS('sarscov2.gds')
+sarscov2_ve <- makeVariantExperimentFromGDS('./sarscov2.gds')
 assayNames(sarscov2_ve) <- c('genotype','DP')
 sarscov2_ve
 ```
 
-3. Sample annotations/metadata (aka `colData`)
+## Sample annotations/metadata (aka `colData`)
 
 ```{r}
 col_data <- DataFrame(read.csv('coldata.csv'))
@@ -195,7 +195,7 @@ stopifnot(identical(colnames(sarscov2_ve), col_data$SRA.ID))
 SummarizedExperiment::colData(sarscov2_ve) <- col_data
 ```
 
-4. Feature annotations/medata (aka `rowData`)
+## Feature annotations/medata (aka `rowData`)
 
 
 ```{r}
@@ -203,31 +203,34 @@ vcffile.fb <- readVcf('variant.q20.vcf')
 rowRanges(sarscov2_ve) <- SummarizedExperiment::rowRanges(vcffile.fb)
 ```
 
-5. Annotation of variants of interest/concern
+## Annotation of variants of interest/concern
+
+As an example, we define two variants of concern, VOC1 and VOC2:
+
+- VOC1 is defined by 2 loci, namely `"MN908947.3:5224_TAAAAAG/TAAAAG"` and
+  `"MN908947.3:22487_GAAAAAG/GAAAAG"`
+- VOC2 is defined by `"MN908947.3:29377_TAAAAAG/TAAAAG"`
+
+These VOCs are defined as logical columns in the rowData slot, with
+matching loci set to `TRUE`.
+
 
 ```{r}
-## VOC initialisation
 rowData(sarscov2_ve)$VOC1 <- rowData(sarscov2_ve)$VOC2 <- FALSE
-## Definition of VOC1, defined by 2 loci, namely
-## "MN908947.3:5224_TAAAAAG/TAAAAG" and
-## "MN908947.3:22487_GAAAAAG/GAAAAG"
 rowData(sarscov2_ve)$VOC1[c(7, 26)] <- TRUE
-## Definition of VOC2, defined by only
-## "MN908947.3:29377_TAAAAAG/TAAAAG"
 rowData(sarscov2_ve)$VOC2[38] <- TRUE
 ```
 
+Below, we manually define which samples have been infected by specific
+variants of concern.
+
 ```{r}
-## has_VOC initialisation
 sarscov2_ve$has_VOC1 <- sarscov2_ve$has_VOC2 <- FALSE
-## Annotation of samples infected by VOC1 and VOC2
 sarscov2_ve$has_VOC1[c(2, 6, 9)] <- TRUE
 sarscov2_ve$has_VOC2[c(3, 5, 8)] <- TRUE
 ```
 
-
-
-6. Serialisation of the object
+## Serialisation of the object
 
 ```{r}
 saveRDS(sarscov2_ve, 'sarscov2_ve.rds')

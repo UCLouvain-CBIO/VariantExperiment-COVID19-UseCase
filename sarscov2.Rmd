@@ -11,10 +11,10 @@ output:
     fig_height: 6
     fig_width: 9
     highlight: tango
-    number_sections: yes
+    number_sections: no
     theme: united
     toc: yes
-    toc_depth: 3
+    toc_depth: 1
     toc_float: yes
 editor_options:
   chunk_output_type: console
@@ -28,141 +28,11 @@ publication ('On the many advantages of using the VariantExperiment
 Bioconductor package for storing, exchanging and analyzing SARS-CoV-2
 genomic data and associated metadata' available on bioRxiv.org).
 
-
-# Load package
-
-```{r, message = FALSE}
-library(VariantExperiment)
-```
-
-# Data loading
-
-The `RangedSummarizedExperiment` object was created with the
-VariantExperiment package for handling SARS-COV2 genomic data and
-associated 'dummy' (in the present study) metadata.
-
-```{r}
-sarscov2_ve <- readRDS('sarscov2_ve.rds')
-```
-
-# Data management
-
-The object contains `r nrow(sarscov2_ve)` variants sequenced in
-`r ncol(sarscov2_ve)` different samples.
-
-```{r}
-sarscov2_ve
-```
-
-## `Assay`: genomic data
-
-As shown heren, the assays slots store the Genomic data (including the
-called genotype and a quality metrics such as read depth (DP) for the
-illustration).  Of course other quality metrics could be added as a
-phred score.
-
-```{r, warning = FALSE}
-assay(sarscov2_ve, "genotype")
-assay(sarscov2_ve, "DP")
-```
-
-It now becomes easy to produce a graphical overview of the genotypes
-of the read depth of a dataset by plotting the respective assay
-heatmap.
-
-```{r, fig.cap = "Heatmap of the virus genotypes."}
-pheatmap::pheatmap(assay(sarscov2_ve, "genotype"))
-```
-
-```{r, fig.cap = "Heatmap of the sequencing read depth illustrating how some samples have systematic low read depth (blue)."}
-pheatmap::pheatmap(assay(sarscov2_ve, "DP"))
-```
-
-
-## `colData`: sample annotations/metadata
-
-As shown here, the `colData` slot stores the annotation/metadata
-associated to each sample (sample, pre-analytic, analytic,
-bioinformatics)
-
-```{r}
-SummarizedExperiment::colData(sarscov2_ve)
-```
-
-## `rowData`: feature annotationnns
-
-Finally, the `rowData` includes the description of each mutation. This
-slot could also include an indicator reflecting if this variant is
-currently considered as a Variant of Concern (VOC) or Variant of high
-Concern.
-
-```{r}
-SummarizedExperiment::rowRanges(sarscov2_ve)
-```
-
-# Subsetting
-
-Here we illustrate how to subset the object. For the demonstration we
-select only data:
-
-- from patient with obesity (Obesity = yes)
-- mutation with a start position < 5000
-
-```{r}
-sel_start <- start(SummarizedExperiment::rowRanges(sarscov2_ve)) < 5000
-sel_obesity <- sarscov2_ve$Obesity == 'yes'
-
-ve2 <- sarscov2_ve[sel_start, sel_obesity]
-ve2
-```
-
-As shown here the selection is performed in one operation for both the
-rowData, colData and assay(s). This property therefore ensures to keep
-a perfect synchronization of genomic data with metadata.
-
-We can also make use the the VOC/VOI definition in the rowData slot to
-extract and focus on the set of mutated loci of each variant:
-
-```{r}
-voc1 <- sarscov2_ve[rowData(sarscov2_ve)$VOC1, ]
-assay(voc1, "genotype")
-rowRanges(voc1)
-```
-
-```{r}
-voc2 <- sarscov2_ve[rowData(sarscov2_ve)$VOC2, ]
-assay(voc2, "genotype")
-rowRanges(voc2)
-```
-
-Below, we use the sample-level metadata to extract the samples that
-have been annotated as having been infected by certain variants of
-concern:
-
-```{r}
-has_VOC1 <- sarscov2_ve[, sarscov2_ve$has_VOC1]
-assay(has_VOC1, "genotype")
-```
-```{r}
-has_VOC2 <- sarscov2_ve[, sarscov2_ve$has_VOC2]
-assay(has_VOC2, "genotype")
-```
-
-Both subsetting can of course be applied simultaneously to extract the
-variants of concern loci in the patients that have been infected by that particular VOC:
-
-```{r}
-is_voc1 <- sarscov2_ve[rowData(sarscov2_ve)$VOC1, sarscov2_ve$has_VOC1]
-assay(is_voc1, "genotype")
-```
-
-
-```{r}
-is_voc2 <- sarscov2_ve[rowData(sarscov2_ve)$VOC2, sarscov2_ve$has_VOC2]
-assay(is_voc2, "genotype")
-```
-
 # Creation of the VariantExperiment object
+
+We start by summarising how the data object is created from the
+`variant.q20.vcf` file and proceed describing how to annotate the
+object with additional feature and sample level metadata.
 
 ## Loading required packages
 
@@ -200,7 +70,7 @@ SummarizedExperiment::colData(sarscov2_ve) <- col_data
 
 ```{r}
 vcffile.fb <- readVcf('variant.q20.vcf')
-rowRanges(sarscov2_ve) <- SummarizedExperiment::rowRanges(vcffile.fb)
+SummarizedExperiment::rowRanges(sarscov2_ve) <- SummarizedExperiment::rowRanges(vcffile.fb)
 ```
 
 ## Annotation of variants of interest/concern
@@ -222,7 +92,9 @@ rowData(sarscov2_ve)$VOC2[38] <- TRUE
 ```
 
 Below, we manually define which samples have been infected by specific
-variants of concern.
+variants of concern. Invection by specific variants of concern could
+also be automatically computed from the VOC rowData annotation.
+
 
 ```{r}
 sarscov2_ve$has_VOC1 <- sarscov2_ve$has_VOC2 <- FALSE
@@ -234,6 +106,135 @@ sarscov2_ve$has_VOC2[c(3, 5, 8)] <- TRUE
 
 ```{r}
 saveRDS(sarscov2_ve, 'sarscov2_ve.rds')
+```
+
+# Usage of the VariantExperiment object
+
+## Data loading
+
+Once created, the `VariantExperiment` object can simply be reloaded
+and readily used.
+
+
+```{r, message = FALSE}
+library(VariantExperiment)
+sarscov2_ve <- readRDS('sarscov2_ve.rds')
+```
+
+The object contains `r nrow(sarscov2_ve)` variants sequenced in
+`r ncol(sarscov2_ve)` different samples.
+
+```{r}
+sarscov2_ve
+```
+
+## `Assay`: genomic data
+
+The assays slots stores the genomic data, including the called
+genotype (encoded as 0, 1, or 2) and a quality metrics such as read
+depth (DP) for the illustration).  Other quality metrics such as the
+phred score, or any quantitative data of identical dimension could be
+added.
+
+
+```{r, warning = FALSE}
+assay(sarscov2_ve, "genotype")
+assay(sarscov2_ve, "DP")
+```
+
+It now becomes easy to produce a graphical overview of the genotypes
+of the read depth of a dataset by plotting the respective assay
+heatmap.
+
+```{r, fig.cap = "Heatmap of the virus genotypes."}
+pheatmap::pheatmap(assay(sarscov2_ve, "genotype"))
+```
+
+```{r, fig.cap = "Heatmap of the sequencing read depth illustrating how some samples have systematic low read depth (blue)."}
+pheatmap::pheatmap(assay(sarscov2_ve, "DP"))
+```
+
+## `colData`: sample annotations/metadata
+
+As shown here, the `colData` slot stores the annotation/metadata
+associated to each sample (sample, pre-analytic, analytic,
+bioinformatics)
+
+```{r}
+SummarizedExperiment::colData(sarscov2_ve)
+```
+
+## `rowData`: feature annotationnns
+
+Finally, the `rowData` includes the description of each mutation. This
+slot could also include an indicator reflecting if this variant is
+currently considered as a Variant of Concern (VOC) or Variant of high
+Concern.
+
+```{r}
+SummarizedExperiment::rowRanges(sarscov2_ve)
+```
+
+## Data manipuation and subsetting
+
+Here we illustrate how to subset the object. For the demonstration we
+select only data:
+
+- from patient with obesity (Obesity = yes)
+- mutation with a start position < 5000
+
+```{r}
+sel_start <- start(SummarizedExperiment::rowRanges(sarscov2_ve)) < 5000
+sel_obesity <- sarscov2_ve$Obesity == 'yes'
+
+ve2 <- sarscov2_ve[sel_start, sel_obesity]
+ve2
+```
+
+As shown here the selection is performed in one operation for both the
+rowData, colData and assay(s). This property therefore ensures to keep
+a perfect synchronization of genomic data with metadata.
+
+We can also make use the the VOC/VOI definition in the rowData slot to
+extract and focus on the set of mutated loci of each variant:
+
+```{r}
+voc1 <- sarscov2_ve[rowData(sarscov2_ve)$VOC1, ]
+assay(voc1, "genotype")
+SummarizedExperiment::rowRanges(voc1)
+```
+
+```{r}
+voc2 <- sarscov2_ve[rowData(sarscov2_ve)$VOC2, ]
+assay(voc2, "genotype")
+SummarizedExperiment::rowRanges(voc2)
+```
+
+Below, we use the sample-level metadata to extract the samples that
+have been annotated as having been infected by certain variants of
+concern:
+
+```{r}
+has_VOC1 <- sarscov2_ve[, sarscov2_ve$has_VOC1]
+assay(has_VOC1, "genotype")
+```
+```{r}
+has_VOC2 <- sarscov2_ve[, sarscov2_ve$has_VOC2]
+assay(has_VOC2, "genotype")
+```
+
+Both subsetting can of course be applied simultaneously to extract the
+variants of concern loci in the patients that have been infected by that particular VOC:
+
+```{r}
+is_voc1 <- sarscov2_ve[rowData(sarscov2_ve)$VOC1, sarscov2_ve$has_VOC1]
+assay(is_voc1, "genotype")
+```
+
+
+```{r}
+is_voc2 <- sarscov2_ve[rowData(sarscov2_ve)$VOC2, sarscov2_ve$has_VOC2]
+assay(is_voc2, "genotype")
 ```
 
 # Further reading

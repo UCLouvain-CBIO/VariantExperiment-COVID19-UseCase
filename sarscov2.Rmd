@@ -237,6 +237,28 @@ is_voc2 <- sarscov2_ve[rowData(sarscov2_ve)$VOC2, sarscov2_ve$has_VOC2]
 assay(is_voc2, "genotype")
 ```
 
+Below, we focus on ranges **and** sample defining and infected by
+VOC1. We illustrate how the definition of a variant of interest, as
+encoded in the `VOC1` indicator, is used to extract the genomic sites
+that define it (`voc1_ranges` variable). The `voc1_sample` variable
+selects the samples that have been annotated as being infected by that
+variant.
+
+```{r}
+voc1_ranges <- rowData(sarscov2_ve)$VOC1
+voc1_sample <- voc1$has_VOC1
+```
+
+We then show how the 3 samples have the alternative allele (a
+deletion) in the 2 sites at positions 5224-5230 and 22487-22493
+respectively.
+
+```{r}
+assay(sarscov2_ve[voc1_ranges, voc1_sample], "genotype")
+SummarizedExperiment::rowRanges(sarscov2_ve[voc1_ranges, ])
+```
+
+
 # Further reading
 
 The `VariantExperiment` package vignettes
